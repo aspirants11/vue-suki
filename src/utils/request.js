@@ -1,10 +1,11 @@
 import axios from 'axios'
+import { Message } from 'element-ui';
 
 // 创建axios，赋给变量service
 const BASEURL = process.env.NODE_ENV === 'production' ? '' : '/devapi';
 const service = axios.create({
     baseURL: BASEURL, // http://localhost:8080/api//
-    timeout: 1000
+    timeout: 15000  // 网络请求接口超时
   });
 
 // 添加请求拦截器
@@ -19,6 +20,14 @@ service.interceptors.request.use(function (config) {
 // 添加响应拦截器
 service.interceptors.response.use(function (response) {
   // 对响应数据做点什么
+  // 后台拦截  检测邮箱是否为空，如果为空弹出消息框 要有后台数据支撑
+  // let data = response.data
+  // if(data.resCode !== 0) {
+  //   Message.error(data.message);
+  //   return Promise.reject(data);
+  // }else{
+  //   return response;
+  // }
   return response;
 }, function (error) {
   // 对响应错误做点什么

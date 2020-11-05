@@ -3,32 +3,32 @@
     <div class="login-wrap">
       <ul class="menu-tab">
         <!-- v-for数据循环  :key = v-bind:key -->
-          <li :class="{ 'current': item.current }" v-for="item in menuTab" :key="item.id" @click="toggleMneu(item)">{{ item.txt }}</li>
+          <li :class="{ 'current': item.current }" v-for="item in menuTab" :key="item.id" @click="toggleMenu(item)">{{ item.txt }}</li>
        </ul>
        <!-- 表单 start -->
-       <el-form :model="ruleForm" status-icon :rules="rules" ref="ruleForm" class="login-form" size="medium">
+       <el-form :model="ruleForm" status-icon :rules="rules" ref="loginForm" class="login-form" size="medium">
         <el-form-item prop="username" class="item-form">
-          <label>邮箱</label>
-          <el-input type="text" v-model="ruleForm.username" autocomplete="off"></el-input>
+          <label for="username">邮箱</label>
+          <el-input id="username" type="text" v-model="ruleForm.username" autocomplete="off"></el-input>
         </el-form-item>
 
         <el-form-item prop="password" class="item-form">
-          <label>密码</label>
-          <el-input type="password" v-model="ruleForm.password" autocomplete="off" maxlength="20" minlength="6"></el-input>
+          <label for="password">密码</label>
+          <el-input id="password" type="password" v-model="ruleForm.password" autocomplete="off" maxlength="20" minlength="6"></el-input>
         </el-form-item>
 
         <el-form-item prop="passwords" class="item-form" v-show="model === 'register'">
-          <label>重复密码</label>
-          <el-input type="password" v-model="ruleForm.passwords" autocomplete="off" maxlength="20" minlength="6"></el-input>
+          <label for="passwords">重复密码</label>
+          <el-input id="passwords" type="password" v-model="ruleForm.passwords" autocomplete="off" maxlength="20" minlength="6"></el-input>
         </el-form-item>
 
         <el-form-item prop="code" class="item-form">
-          <label>验证码</label>
+          <label for="code">验证码</label>
             <!-- gutter  属性来指定每一栏之间的间隔，默认间隔为 0  span 通过基础的 24 分栏，迅速简便地创建布局 
                 autocomplete="off"，禁止浏览器默认填充 -->
           <el-row :gutter="20">
             <el-col :span="15">
-              <el-input type="text" v-model="ruleForm.code" autocomplete="off"></el-input>                
+              <el-input id="code" type="text" v-model="ruleForm.code" autocomplete="off"></el-input>                
             </el-col>
             <el-col :span="9">
               <el-button  type="success" class="block" @click="getSms()">获取验证码</el-button>
@@ -37,7 +37,7 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="danger" @click="submitForm('ruleForm')" class="login-btn block">提交</el-button>
+          <el-button type="danger" @click="submitForm('ruleForm')" class="login-btn block" :disabled="loginButtonStatus">{{ model === 'login' ? "登录" : "注册" }}</el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -49,7 +49,7 @@ import { reactive, ref, onMounted } from '@vue/composition-api';
 import { stripscript, validateEmail, validatePassw, validateVcode } from '@/utils/validate';
 export default {
   name: 'login',
-  setup(pops, context) {
+  setup(pops, { refs, root }) {
     // 这里面放置data数据，生命周期，自定义函数
     /**
      * 声明数据
@@ -102,15 +102,20 @@ export default {
       } else if (!validateVcode(value)) {
         callback(new Error('验证码错误'));
       } else {
+        // 验证内容是否输入完毕 暂时写在这儿
+        loginButtonStatus.value = false;
         callback();
       }
-    }
+    };   
+
     const menuTab = reactive([
       { txt: '登录', current: true, type: 'login'},
       { txt: '注册', current: false, type: 'register'}
     ])
     // 模块值
     const model = ref('login')
+    // 登录按钮禁用状态
+    const loginButtonStatus = ref(true)
     // 表单绑定数据
     const ruleForm = reactive({
         username: '',
@@ -138,9 +143,9 @@ export default {
     /**
      * 声明函数
      */
-        // vue 数据驱动视频渲染
+    // vue 数据驱动视频渲染
     // // js 操作DOM元素
-    const toggleMneu = (data => {
+    const toggleMenu = (data => {
       console.log(data)
       // 遍历menuTab里current的值都为false
       menuTab.forEach(elem => {
@@ -150,15 +155,42 @@ export default {
       data.current = true
       // 修改模块值
       model.value = data.type
+      // 重置表单
+      // this.$refs[formName].resetFields(); // 2.0写法
+      refs.loginForm.resetFields(); // 3.0写法
+
     })
     /**
      * 获取验证码
      */
     const getSms = (() => {
-      let data = {
-        username: ruleForm.username
+      // 前端进行拦截提示
+      if(ruleForm.username == ''){
+        root.$message.error({ message: '邮箱不能为空！' });
+        return false
       }
-      GetSms(data)
+
+      // 邮箱校验
+      // if(validateEmail(ruleForm.username)){
+      //   root.$message.error({ message: '邮箱格式有误，请重新输入！'});
+      //   return false
+      // }
+
+      // 请求的接口
+      // 多个接口写法
+      // let data = {
+      //   username: ruleForm.username
+      // }
+      // GetSms(data)
+
+      // 单个接口写法
+      GetSms({ username: ruleForm.username })
+      // 要有后台数据支撑
+      // GetSms({ username: ruleForm.username }).then(response => {
+
+      // }).catch(error => {
+      //     console.log(error)
+      // })
     })
     /**
      * 提交表单
@@ -185,7 +217,8 @@ export default {
     return {
       menuTab,
       model,
-      toggleMneu,
+      loginButtonStatus,
+      toggleMenu,
       submitForm,
       ruleForm,
       rules,
